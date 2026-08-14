@@ -494,7 +494,7 @@ async function analyzeStock() {
         | 建立 API URL
         */
         const url =
-            ${API_BASE_URL}/?stock=${encodeURIComponent(stock)};
+            `${API_BASE_URL}/?stock=${encodeURIComponent(stock)}`;
         /*
         | 呼叫 Cloudflare Worker
         */
@@ -511,7 +511,7 @@ async function analyzeStock() {
         */
         if (!response.ok) {
             throw new Error(
-                API 回應錯誤：HTTP ${response.status}
+                `API 回應錯誤：HTTP ${response.status}`
             );
         }
         /*
@@ -626,11 +626,11 @@ async function analyzeStock() {
         document.getElementById(
             "stockName"
         ).innerText =
-            name || 股票 ${code};
+            name || `股票 ${code}`;
         document.getElementById(
             "stockCode"
         ).innerText =
-            股票代號：${code};
+            `股票代號：${code}`;
         /*
         | 技術資料
         */
