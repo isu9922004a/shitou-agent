@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>石頭少爺月線波段 Agent</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+    font-family:'Noto Sans TC',sans-serif;
+}
+
+.card{
+    @apply bg-white rounded-2xl shadow-sm border border-slate-200;
+}
+
+.loader{
+    width:48px;
+    height:48px;
+    border:4px solid #dbeafe;
+    border-top:4px solid #2563eb;
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+    0%{transform:rotate(0deg);}
+    100%{transform:rotate(360deg);}
+}
+
+.hidden{
+    display:none;
+}
+
+</style>
+
+</head>
+
+<body class="bg-slate-100 min-h-screen">
+
+<div class="max-w-6xl mx-auto p-4 md:p-8">
+
+    <!-- Header -->
+
+    <div class="bg-gradient-to-r from-blue-700 to-blue-500 text-white rounded-3xl p-8 shadow-xl">
+
+        <h1 class="text-3xl md:text-4xl font-black">
+            🚀 石頭少爺月線波段 Agent
+        </h1>
+
+        <p class="mt-3 text-blue-100">
+            輸入股票代號，自動產生月線波段分析報告
+        </p>
+
+    </div>
+
+    <!-- Search -->
+
+    <div class="bg-white rounded-3xl shadow-lg p-6 mt-6">
+
+        <h2 class="font-bold text-xl mb-4">
+            股票查詢
+        </h2>
+
+        <div class="flex flex-col md:flex-row gap-3">
+
+            <input
+                id="stockInput"
+                type="text"
+                placeholder="例如：2330"
+                class="flex-1 border border-slate-300 rounded-xl p-4 text-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+
+            <button
+                id="analyzeBtn"
+                onclick="analyzeStock()"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl"
+            >
+                開始分析
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- Loading -->
+
+    <div id="loadingArea" class="hidden">
+
+        <div class="bg-white rounded-3xl p-10 mt-6 flex flex-col items-center">
+
+            <div class="loader"></div>
+
+            <p class="mt-4 text-slate-600">
+                Agent 分析中...
+            </p>
+
+        </div>
+
+    </div>
+
+    <!-- Error -->
+
+    <div id="errorArea" class="hidden">
+
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-5 mt-6">
+
+            <strong>錯誤：</strong>
+
+            <span id="errorText"></span>
+
+        </div>
+
+    </div>
+
+    <!-- Report -->
+
+    <div id="reportArea" class="hidden mt-6">
+
+        <!-- 股票資訊 -->
+
+        <div class="bg-white rounded-3xl shadow-lg p-6">
+
+            <div class="flex justify-between items-start">
+
+                <div>
+
+                    <h2 class="text-2xl font-black">
+                        <span id="stockName"></span>
+                    </h2>
+
+                    <p class="text-slate-500">
+                        股票代號：
+                        <span id="stockCode"></span>
+                    </p>
+
+                </div>
+
+                <button
+                    onclick="copyReport()"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold"
+                >
+                    📋 複製報告
+                </button>
+
+            </div>
+
+        </div>
+
+        <!-- 進場條件 -->
+
+        <div class="bg-white rounded-3xl shadow-lg p-6 mt-4">
+
+            <h3 class="font-black text-xl mb-4">
+                進場條件
+            </h3>
+
+            <div class="grid md:grid-cols-2 gap-4">
+
+                <div>
+                    月線20MA：
+                    <strong id="ma20"></strong>
+                </div>
+
+                <div>
+                    月線收盤：
+                    <strong id="monthlyClose"></strong>
+                </div>
+
+            </div>
+
+            <div id="entryStatus" class="mt-4"></div>
+
+        </div>
+
+        <!-- 基準值 -->
+
+        <div class="bg-white rounded-3xl shadow-lg p-6 mt-4">
+
+            <h3 class="font-black text-xl mb-4">
+                基準值
+            </h3>
+
+            <div class="grid md:grid-cols-3 gap-4">
+
+                <div>
+                    月線最高價
+                    <div id="monthlyHigh" class="font-bold text-lg"></div>
+                </div>
+
+                <div>
+                    月線最低價
+                    <div id="monthlyLow" class="font-bold text-lg"></div>
+                </div>
+
+                <div>
+                    基準值
+                    <div id="baseValue" class="font-black text-2xl text-blue-600"></div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 倍數 -->
+
+        <div class="bg-white rounded-3xl shadow-lg p-6 mt-4">
+
+            <h3 class="font-black text-xl mb-4">
+                目前位階
+            </h3>
+
+            <div class="grid md:grid-cols-4 gap-4">
+
+                <div>
+                    現價
+                    <div id="currentPrice" class="font-bold"></div>
+                </div>
+
+                <div>
+                    RSI
+                    <div id="rsiValue" class="font-bold"></div>
+                </div>
+
+                <div>
+                    目前倍數
+                    <div id="multipleValue" class="font-black text-2xl text-blue-600"></div>
+                </div>
+
+                <div>
+                    位階
+                    <div id="stageValue" class="font-black text-xl"></div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 目標價 -->
+
+        <div class="bg-white rounded-3xl shadow-lg p-6 mt-4">
+
+            <h3 class="font-black text-xl mb-4">
+                天花板目標價
+            </h3>
+
+            <div
+                id="targetsGrid"
+                class="grid grid-cols-2 md:grid-cols-5 gap-3"
+            >
+            </div>
+
+        </div>
+
+        <!-- AI總評 -->
+
+        <div class="bg-white rounded-3xl shadow-lg p-6 mt-4">
+
+            <h3 class="font-black text-xl mb-4">
+                AI總評
+            </h3>
+
+            <div
+                id="summaryText"
+                class="leading-8 text-slate-700"
+            ></div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const API_BASE =
+"https://YOUR-WORKER.workers.dev";
+
+let latestData = null;
+
+async function analyzeStock(){
+
+    const stock =
+        document.getElementById("stockInput")
+        .value
+        .trim();
+
+    if(!stock){
+
+        showError("請輸入股票代號");
+
+        return;
+    }
+
+    hideAll();
+
+    document
+        .getElementById("loadingArea")
+        .classList.remove("hidden");
+
+    try{
+
+        const response =
+        await fetch(
+            `${API_BASE}/api/analyze?stock=${stock}`
+        );
+
+        if(!response.ok){
+
+            throw new Error("API回應失敗");
+        }
+
+        const data =
+        await response.json();
+
+        latestData = data;
+
+        renderReport(data);
+
+    }catch(error){
+
+        showError(error.message);
+
+    }finally{
+
+        document
+            .getElementById("loadingArea")
+            .classList.add("hidden");
+    }
+}
+
+function renderReport(data){
+
+    document
+        .getElementById("reportArea")
+        .classList.remove("hidden");
+
+    document.getElementById("stockName")
+        .textContent = data.name;
+
+    document.getElementById("stockCode")
+        .textContent = data.stock;
+
+    document.getElementById("ma20")
+        .textContent = data.ma20;
+
+    document.getElementById("monthlyClose")
+        .textContent = data.monthlyClose;
+
+    document.getElementById("monthlyHigh")
+        .textContent = data.monthlyHigh;
+
+    document.getElementById("monthlyLow")
+        .textContent = data.monthlyLow;
+
+    document.getElementById("baseValue")
+        .textContent = data.baseValue;
+
+    document.getElementById("currentPrice")
+        .textContent = data.close;
+
+    document.getElementById("rsiValue")
+        .textContent = data.rsi;
+
+    document.getElementById("multipleValue")
+        .textContent = data.multiple + "倍";
+
+    document.getElementById("stageValue")
+        .textContent = data.stage;
+
+    document.getElementById("entryStatus")
+        .innerHTML = data.entry
+        ? '<div class="text-emerald-600 font-bold">✅ 符合進場條件</div>'
+        : '<div class="text-red-600 font-bold">⚠️ 尚未符合進場條件</div>';
+
+    renderTargets(data);
+
+    renderSummary(data);
+}
+
+function renderTargets(data){
+
+    const grid =
+    document.getElementById("targetsGrid");
+
+    const multiples =
+    [3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10];
+
+    let html = "";
+
+    multiples.forEach(m=>{
+
+        const target =
+        (data.baseValue*m).toFixed(2);
+
+        html += `
+        <div class="border rounded-xl p-3 text-center">
+            <div class="text-sm text-slate-500">
+                ${m}倍
+            </div>
+            <div class="font-black text-lg">
+                ${target}
+            </div>
+        </div>
+        `;
+    });
+
+    grid.innerHTML = html;
+}
+
+function renderSummary(data){
+
+    let summary = "";
+
+    summary += `目前位於 ${data.stage}。<br><br>`;
+
+    if(data.rsi >= 90){
+
+        summary +=
+        "RSI已接近90，需留意主力獲利了結風險。";
+
+    }else if(data.rsi >= 80){
+
+        summary +=
+        "RSI處於非常熱區。";
+
+    }else if(data.rsi >= 70){
+
+        summary +=
+        "RSI進入超買區。";
+
+    }else{
+
+        summary +=
+        "RSI尚未進入過熱區。";
+    }
+
+    document
+        .getElementById("summaryText")
+        .innerHTML = summary;
+}
+
+function copyReport(){
+
+    if(!latestData) return;
+
+    const report = `
+【石頭少爺月線波段報告】
+
+股票：
+${latestData.stock} ${latestData.name}
+
+月線20MA：
+${latestData.ma20}
+
+月線收盤：
+${latestData.monthlyClose}
+
+基準值：
+${latestData.baseValue}
+
+目前倍數：
+${latestData.multiple}
+
+位階：
+${latestData.stage}
+
+RSI：
+${latestData.rsi}
+`;
+
+    navigator.clipboard
+    .writeText(report)
+    .then(()=>{
+        alert("報告已複製");
+    });
+}
+
+function showError(msg){
+
+    document
+        .getElementById("errorArea")
+        .classList.remove("hidden");
+
+    document
+        .getElementById("errorText")
+        .textContent = msg;
+}
+
+function hideAll(){
+
+    document
+        .getElementById("errorArea")
+        .classList.add("hidden");
+
+    document
+        .getElementById("reportArea")
+        .classList.add("hidden");
+}
+
+</script>
+
+</body>
+</html>
